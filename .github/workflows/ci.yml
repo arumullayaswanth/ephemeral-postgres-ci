@@ -67,6 +67,61 @@ jobs:
           . .venv/bin/activate
           python -m ci.migrate
 
+      # Print the full contents of the ephemeral database.
+      - name: Inspect database (after migrations)
+        run: |
+          echo "=================== DATABASES ==================="
+          psql -c "\l"
+
+          echo "=================== TABLES ($PGDATABASE) ==================="
+          psql -d "$PGDATABASE" -c "\dt"
+
+          echo "=================== TABLE COUNT ==================="
+          psql -d "$PGDATABASE" -t -c \
+            "SELECT count(*) AS table_count FROM information_schema.tables WHERE table_schema='public';"
+
+          echo "=================== ROW COUNT PER TABLE ==================="
+          psql -d "$PGDATABASE" -c \
+            "SELECT relname AS table, n_live_tup AS rows FROM pg_stat_user_tables ORDER BY relname;"
+
+          echo "=================== DATA IN EACH TABLE ==================="
+          for t in $(psql -d "$PGDATABASE" -t -A -c \
+            "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;"); do
+            echo "----- $t -----"
+            psql -d "$PGDATABASE" -c "SELECT * FROM \"$t\";"
+          done
+
+      # Difference between the base 'postgres' DB and this ephemeral 'ci_run_<id>' DB.
+      - name: Diff ephemeral DB vs base postgres DB
+        run: |
+          echo "=================== TABLES in base '$PGADMINDB' ==================="
+          psql -d "$PGADMINDB" -t -A -c \
+            "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;" \
+            | sort > /tmp/base_tables.txt
+          cat /tmp/base_tables.txt || echo "(none)"
+
+          echo "=================== TABLES in ephemeral '$PGDATABASE' ==================="
+          psql -d "$PGDATABASE" -t -A -c \
+            "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;" \
+            | sort > /tmp/ephemeral_tables.txt
+          cat /tmp/ephemeral_tables.txt || echo "(none)"
+
+          echo "=================== DIFF: tables ==================="
+          echo "--- Tables ONLY in ephemeral (added by migrations) ---"
+          comm -23 /tmp/ephemeral_tables.txt /tmp/base_tables.txt || echo "(none)"
+          echo "--- Tables ONLY in base postgres ---"
+          comm -13 /tmp/ephemeral_tables.txt /tmp/base_tables.txt || echo "(none)"
+          echo "--- Tables in BOTH ---"
+          comm -12 /tmp/ephemeral_tables.txt /tmp/base_tables.txt || echo "(none)"
+
+          echo "=================== DIFF: row counts (base vs ephemeral) ==================="
+          printf "%-25s %-12s %-12s\n" "TABLE" "BASE_ROWS" "EPHEMERAL_ROWS"
+          for t in $(cat /tmp/base_tables.txt /tmp/ephemeral_tables.txt | sort -u); do
+            base=$(psql -d "$PGADMINDB"  -t -A -c "SELECT count(*) FROM \"$t\";" 2>/dev/null || echo "-")
+            eph=$(psql  -d "$PGDATABASE" -t -A -c "SELECT count(*) FROM \"$t\";" 2>/dev/null || echo "-")
+            printf "%-25s %-12s %-12s\n" "$t" "$base" "$eph"
+          done
+
       - name: Run integration tests
         run: |
           . .venv/bin/activate
