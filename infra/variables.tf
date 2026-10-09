@@ -42,9 +42,9 @@ variable "key_name" {
 }
 
 variable "associate_public_ip" {
-  description = "Assign a public IP to the EC2 client. Keep false for private subnets."
+  description = "Assign a public IP to the EC2 client. True so SSM works in the default (public) VPC."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "ec2_instance_profile" {
