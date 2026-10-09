@@ -50,9 +50,15 @@ variable "create_instance_profile" {
 }
 
 variable "secret_arn" {
-  description = "ARN of the DB secret the instance may read. Empty disables the read policy."
+  description = "ARN of the DB secret the instance may read."
   type        = string
   default     = ""
+}
+
+variable "attach_secret_policy" {
+  description = "Attach the secret-read policy to the instance role (static, plan-time flag)."
+  type        = bool
+  default     = true
 }
 
 variable "depends_on_arns" {

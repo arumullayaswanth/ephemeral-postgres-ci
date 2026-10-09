@@ -76,8 +76,9 @@ module "ec2_client" {
 
   # Allow reading the DB secret, and make the instance boot after the secret
   # (and its value) exist so seeding can succeed.
-  secret_arn      = module.secrets.secret_arn
-  depends_on_arns = [module.secrets.secret_version_id]
+  secret_arn           = module.secrets.secret_arn
+  attach_secret_policy = true
+  depends_on_arns      = [module.secrets.secret_version_id]
 
   tags = local.common_tags
 }

@@ -31,7 +31,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 
 # Least-privilege read of the DB secret.
 data "aws_iam_policy_document" "secret_read" {
-  count = var.create_instance_profile && var.secret_arn != "" ? 1 : 0
+  count = var.create_instance_profile && var.attach_secret_policy ? 1 : 0
 
   statement {
     effect    = "Allow"
@@ -41,7 +41,7 @@ data "aws_iam_policy_document" "secret_read" {
 }
 
 resource "aws_iam_role_policy" "secret_read" {
-  count  = var.create_instance_profile && var.secret_arn != "" ? 1 : 0
+  count  = var.create_instance_profile && var.attach_secret_policy ? 1 : 0
   name   = "${var.name}-read-db-secret"
   role   = aws_iam_role.client[0].id
   policy = data.aws_iam_policy_document.secret_read[0].json
