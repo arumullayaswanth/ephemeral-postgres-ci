@@ -8,11 +8,11 @@ resource "aws_security_group" "rds" {
 
 # Allow configured client security groups to reach PostgreSQL.
 resource "aws_vpc_security_group_ingress_rule" "from_clients" {
-  for_each = toset(var.allowed_security_group_ids)
+  count = length(var.allowed_security_group_ids)
 
   security_group_id            = aws_security_group.rds.id
   description                  = "Client SG to PostgreSQL"
-  referenced_security_group_id = each.value
+  referenced_security_group_id = var.allowed_security_group_ids[count.index]
   from_port                    = var.port
   to_port                      = var.port
   ip_protocol                  = "tcp"
