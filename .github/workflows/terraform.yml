@@ -82,24 +82,7 @@ jobs:
       # ---- apply ----
       - name: Terraform apply
         if: inputs.action == 'apply'
-        run: |
-          set -o pipefail
-          terraform apply -input=false -auto-approve -no-color 2>&1 | tee apply.log
-        continue-on-error: true
-        id: apply
-
-      - name: Show apply errors
-        if: inputs.action == 'apply'
-        run: |
-          echo "## Terraform apply errors" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          grep -A 20 -iE "error" apply.log >> "$GITHUB_STEP_SUMMARY" || echo "no error lines found" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          # Fail the job if apply failed.
-          if [ "${{ steps.apply.outcome }}" = "failure" ]; then
-            echo "Terraform apply failed - see the errors above."
-            exit 1
-          fi
+        run: terraform apply -input=false -auto-approve -no-color
 
       # ---- destroy ----
       - name: Terraform destroy
