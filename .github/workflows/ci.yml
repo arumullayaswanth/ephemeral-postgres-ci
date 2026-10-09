@@ -1,9 +1,8 @@
 name: CI
 
 on:
-  push:
-    branches: [master, main]
   pull_request:
+  workflow_dispatch:
 
 # Required for OIDC authentication to AWS (to read the DB secret).
 permissions:
