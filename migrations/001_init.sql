@@ -15,21 +15,21 @@ FROM (VALUES
     ('gadget', 9.99),
     ('gizmo', 19.50),
     ('doohickey', 4.25)
-    -- ,('sprocket', 7.75)
-    -- ,('cog', 3.10)
-    -- ,('widget-pro', 29.99)
-    -- ,('bolt', 0.50)
-    -- ,('nut', 0.25)
-    -- ,('flange', 12.00)
-    -- ,('grommet', 1.99)
+    ,('sprocket', 7.75)
+    ,('cog', 3.10)
+    ,('widget-pro', 29.99)
+    ,('bolt', 0.50)
+    ,('nut', 0.25)
+    ,('flange', 12.00)
+    ,('grommet', 1.99)
 ) AS v(name, price)
 WHERE NOT EXISTS (SELECT 1 FROM widget);
 
 -- === More records as standalone inserts (uncomment to add) ===
--- INSERT INTO widget (name, price) VALUES ('sprocket', 7.75);
--- INSERT INTO widget (name, price) VALUES ('cog', 3.10);
--- INSERT INTO widget (name, price) VALUES ('widget-pro', 29.99);
--- INSERT INTO widget (name, price) VALUES ('bolt', 0.50);
--- INSERT INTO widget (name, price) VALUES ('nut', 0.25);
--- INSERT INTO widget (name, price) VALUES ('flange', 12.00);
--- INSERT INTO widget (name, price) VALUES ('grommet', 1.99);
+INSERT INTO widget (name, price) VALUES ('sprocket', 7.75);
+INSERT INTO widget (name, price) VALUES ('cog', 3.10);
+INSERT INTO widget (name, price) VALUES ('widget-pro', 29.99);
+INSERT INTO widget (name, price) VALUES ('bolt', 0.50);
+INSERT INTO widget (name, price) VALUES ('nut', 0.25);
+INSERT INTO widget (name, price) VALUES ('flange', 12.00);
+INSERT INTO widget (name, price) VALUES ('grommet', 1.99);
