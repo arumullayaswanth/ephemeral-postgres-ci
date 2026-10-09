@@ -50,26 +50,31 @@ jobs:
             echo "PGADMINDB=$(echo "$SECRET_JSON" | jq -r .PGADMINDB)"
           } >> "$GITHUB_ENV"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - name: Install dependencies
         run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Create ephemeral database
-        run: python -m ci.create_database
+        run: |
+          . .venv/bin/activate
+          python -m ci.create_database
 
       - name: Run migrations
-        run: python -m ci.migrate
+        run: |
+          . .venv/bin/activate
+          python -m ci.migrate
 
       - name: Run integration tests
-        run: pytest -v
+        run: |
+          . .venv/bin/activate
+          pytest -v
 
       # Cleanup runs even if tests fail, so no orphaned databases are left.
       - name: Drop ephemeral database
         if: always()
-        run: python -m ci.drop_database
+        run: |
+          . .venv/bin/activate
+          python -m ci.drop_database
