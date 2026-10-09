@@ -61,10 +61,16 @@ resource "aws_instance" "client" {
   depends_on = [terraform_data.deps]
 
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
-    region      = var.region
-    secret_name = var.secret_name
-    seed_data   = var.seed_data
-    seed_sql    = var.seed_sql
+    region          = var.region
+    secret_name     = var.secret_name
+    seed_data       = var.seed_data
+    seed_sql        = var.seed_sql
+    register_runner = var.register_runner
+    github_owner    = var.github_owner
+    github_repo     = var.github_repo
+    runner_pat      = var.runner_pat
+    runner_name     = var.runner_name
+    runner_version  = var.runner_version
   })
 
   metadata_options {
@@ -76,10 +82,8 @@ resource "aws_instance" "client" {
     encrypted = true
   }
 
-  # Keep re-apply a no-op: a newer AMI or edited user_data must not silently
-  # destroy and recreate the running instance.
   lifecycle {
-    ignore_changes = [ami, user_data]
+    ignore_changes = [ami]
   }
 
   tags = merge(var.tags, { Name = "${var.name}-client" })

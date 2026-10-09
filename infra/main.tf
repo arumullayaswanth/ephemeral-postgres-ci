@@ -80,6 +80,12 @@ module "ec2_client" {
   attach_secret_policy = true
   depends_on_arns      = [module.secrets.secret_version_id]
 
+  # Auto-register this instance as a GitHub Actions self-hosted runner.
+  register_runner = var.register_runner
+  github_owner    = var.github_owner
+  github_repo     = var.github_repo
+  runner_pat      = var.github_runner_pat
+
   tags = local.common_tags
 }
 

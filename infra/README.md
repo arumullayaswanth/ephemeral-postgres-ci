@@ -60,6 +60,27 @@ Repo -> Settings -> Secrets and variables -> Actions -> Variables -> New variabl
 | `AWS_REGION`      | `us-east-1`                         |
 | `TF_STATE_BUCKET` | the bucket name from step 1         |
 
+## 4b. Add the runner PAT as a GitHub Secret
+
+The EC2 instance auto-registers itself as a self-hosted runner on boot. It needs
+a GitHub token to do so.
+
+1. GitHub -> Settings (your account) -> Developer settings -> Personal access
+   tokens -> Fine-grained token (or classic with `repo` scope).
+2. Give it access to this repo with permission to manage **Actions runners**.
+3. Repo -> Settings -> Secrets and variables -> Actions -> **Secrets** tab ->
+   New repository secret:
+
+| Name            | Value              |
+| --------------- | ------------------ |
+| `GH_RUNNER_PAT` | the token from above |
+
+(This is a Secret, not a Variable, because it is sensitive.)
+
+The repo owner and name are detected automatically from the workflow context
+(`github.repository_owner` and `github.event.repository.name`) and passed to
+Terraform. You do not configure them anywhere.
+
 ## 5. Run the pipeline (create)
 
 1. Repo -> Actions -> Terraform -> Run workflow.
@@ -86,6 +107,20 @@ export PGUSER=$(echo $SECRET | jq -r .PGUSER)
 export PGPASSWORD=$(echo $SECRET | jq -r .PGPASSWORD)
 export PGDATABASE=$(echo $SECRET | jq -r .PGADMINDB)
 psql
+```
+
+## 7b. Verify the self-hosted runner registered
+
+After apply, the EC2 auto-registers as a runner.
+
+- GitHub -> repo Settings -> Actions -> Runners -> you should see
+  `ephemeral-postgres-ci-runner` with a green **Idle** dot.
+- The CI workflow (`runs-on: self-hosted`) will now be picked up.
+
+To check on the instance:
+
+```bash
+sudo systemctl status 'actions.runner.*'
 ```
 
 ## 8. See the table and the data

@@ -96,6 +96,45 @@ variable "seed_sql" {
   default     = ""
 }
 
+# --- GitHub self-hosted runner (auto-registration) ---
+
+variable "register_runner" {
+  description = "Register this instance as a GitHub Actions self-hosted runner on boot."
+  type        = bool
+  default     = false
+}
+
+variable "github_owner" {
+  description = "GitHub org/user that owns the repo (for runner registration)."
+  type        = string
+  default     = ""
+}
+
+variable "github_repo" {
+  description = "Repository name (for runner registration)."
+  type        = string
+  default     = ""
+}
+
+variable "runner_pat" {
+  description = "GitHub PAT (repo scope) used to fetch a runner registration token."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "runner_name" {
+  description = "Name shown for the self-hosted runner in GitHub."
+  type        = string
+  default     = "ephemeral-postgres-ci-runner"
+}
+
+variable "runner_version" {
+  description = "GitHub Actions runner version (no leading v). Must be >= 2.329.0 (GitHub enforces a minimum)."
+  type        = string
+  default     = "2.329.0"
+}
+
 variable "tags" {
   description = "Tags applied to created resources."
   type        = map(string)

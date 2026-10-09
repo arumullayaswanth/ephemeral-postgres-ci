@@ -32,6 +32,12 @@ env:
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
   AWS_REGION: ${{ vars.AWS_REGION }}
+  # GitHub PAT (repo scope) used by the EC2 to self-register as a runner.
+  # Store it as a repository SECRET named GH_RUNNER_PAT.
+  TF_VAR_github_runner_pat: ${{ secrets.GH_RUNNER_PAT }}
+  # Owner/repo come automatically from the workflow context (no hardcoding).
+  TF_VAR_github_owner: ${{ github.repository_owner }}
+  TF_VAR_github_repo: ${{ github.event.repository.name }}
 
 jobs:
   terraform:

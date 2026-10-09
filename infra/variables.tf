@@ -123,6 +123,33 @@ variable "seed_data" {
   default     = true
 }
 
+# --- GitHub self-hosted runner (auto-registration) ---
+
+variable "register_runner" {
+  description = "Auto-register the EC2 client as a GitHub Actions self-hosted runner."
+  type        = bool
+  default     = true
+}
+
+variable "github_owner" {
+  description = "GitHub org/user that owns the repo. Supplied from the workflow (github.repository_owner)."
+  type        = string
+  default     = ""
+}
+
+variable "github_repo" {
+  description = "Repository name. Supplied from the workflow (github.event.repository.name)."
+  type        = string
+  default     = ""
+}
+
+variable "github_runner_pat" {
+  description = "GitHub PAT (repo scope). Pass via TF_VAR_github_runner_pat; never commit it."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "db_multi_az" {
   description = "Enable Multi-AZ for the RDS instance."
   type        = bool
