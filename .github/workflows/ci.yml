@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+# Required for OIDC authentication to AWS (to read the DB secret).
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  integration:
+    # Self-hosted runner in the VPC (needs private RDS access).
+    runs-on: self-hosted
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      # Name of the Secrets Manager secret Terraform created (output db_secret_name).
+      DB_SECRET_NAME: ${{ vars.DB_SECRET_NAME }}
+      # One ephemeral database per run keeps concurrent runs isolated.
+      PGDATABASE: ci_run_${{ github.run_id }}_${{ github.run_attempt }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Fetch the DB connection details Terraform stored in Secrets Manager and
+      # expose them as PostgreSQL environment variables for the rest of the job.
+      - name: Load DB credentials from Secrets Manager
+        run: |
+          SECRET_JSON=$(aws secretsmanager get-secret-value \
+            --secret-id "$DB_SECRET_NAME" \
+            --region "$AWS_REGION" \
+            --query SecretString --output text)
+
+          echo "::add-mask::$(echo "$SECRET_JSON" | jq -r .PGPASSWORD)"
+
+          {
+            echo "PGHOST=$(echo "$SECRET_JSON" | jq -r .PGHOST)"
+            echo "PGPORT=$(echo "$SECRET_JSON" | jq -r .PGPORT)"
+            echo "PGUSER=$(echo "$SECRET_JSON" | jq -r .PGUSER)"
+            echo "PGPASSWORD=$(echo "$SECRET_JSON" | jq -r .PGPASSWORD)"
+            echo "PGADMINDB=$(echo "$SECRET_JSON" | jq -r .PGADMINDB)"
+          } >> "$GITHUB_ENV"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create ephemeral database
+        run: python -m ci.create_database
+
+      - name: Run migrations
+        run: python -m ci.migrate
+
+      - name: Run integration tests
+        run: pytest -v
+
+      # Cleanup runs even if tests fail, so no orphaned databases are left.
+      - name: Drop ephemeral database
+        if: always()
+        run: python -m ci.drop_database

@@ -1,0 +1,94 @@
+name: Terraform
+
+# Manual trigger only. Pick an action from the dropdown when you run it.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action to run"
+        type: choice
+        required: true
+        default: plan
+        options:
+          - plan
+          - apply
+          - destroy
+      confirm_destroy:
+        description: "Type 'destroy' to confirm teardown (required for destroy)"
+        type: string
+        required: false
+        default: ""
+
+# Required for OIDC authentication to AWS.
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  terraform:
+    name: Terraform ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Guard destroy confirmation
+        if: inputs.action == 'destroy' && inputs.confirm_destroy != 'destroy'
+        run: |
+          echo "::error::Destroy requires confirm_destroy to be set to 'destroy'."
+          exit 1
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="region=${{ vars.AWS_REGION }}"
+
+      - name: Terraform validate
+        run: terraform validate
+
+      # ---- plan ----
+      - name: Terraform plan
+        if: inputs.action == 'plan'
+        run: terraform plan -input=false -no-color
+
+      # ---- apply ----
+      - name: Terraform apply
+        if: inputs.action == 'apply'
+        run: terraform apply -input=false -auto-approve -no-color
+
+      # ---- destroy ----
+      - name: Terraform destroy
+        if: inputs.action == 'destroy'
+        run: terraform destroy -input=false -auto-approve -no-color
+
+      - name: Terraform outputs
+        if: inputs.action == 'apply'
+        run: terraform output -no-color

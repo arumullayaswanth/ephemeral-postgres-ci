@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euxo pipefail
+
+# --- Run only once ---
+# If a previous boot already completed this bootstrap, skip everything.
+MARKER=/var/log/ec2-client-bootstrap.done
+if [ -f "$MARKER" ]; then
+  echo "Bootstrap already completed; skipping."
+  exit 0
+fi
+
+# --- Install tools needed to connect to and work with the database ---
+# AWS CLI v2 is preinstalled on Amazon Linux 2023, so it is not in this list.
+dnf install -y postgresql15 python3 python3-pip git jq
+
+# Make libpq tools available for all users.
+echo 'export PATH=$PATH:/usr/bin' >/etc/profile.d/pgtools.sh
+
+%{ if seed_data ~}
+# --- Seed demo data on first boot ---
+# Fetch DB credentials from Secrets Manager, then load the seed SQL.
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+  --secret-id "${secret_name}" \
+  --region "${region}" \
+  --query SecretString --output text)
+
+export PGHOST=$(echo "$SECRET_JSON" | jq -r .PGHOST)
+export PGPORT=$(echo "$SECRET_JSON" | jq -r .PGPORT)
+export PGUSER=$(echo "$SECRET_JSON" | jq -r .PGUSER)
+export PGPASSWORD=$(echo "$SECRET_JSON" | jq -r .PGPASSWORD)
+export PGDATABASE=$(echo "$SECRET_JSON" | jq -r .PGADMINDB)
+
+cat >/tmp/seed.sql <<'SQL'
+${seed_sql}
+SQL
+
+# Wait for the database to accept connections, then seed it.
+for i in $(seq 1 30); do
+  if pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; then
+    break
+  fi
+  sleep 10
+done
+
+psql -v ON_ERROR_STOP=1 -f /tmp/seed.sql
+%{ endif ~}
+
+echo "EC2 client bootstrap complete." >"$MARKER"
