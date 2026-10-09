@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import psycopg
 
 
@@ -25,4 +27,5 @@ def test_widget_seed_data(db_connection: psycopg.Connection) -> None:
         assert cur.fetchone()[0] >= 3
 
         cur.execute("SELECT price FROM widget WHERE name = %s", ("gadget",))
-        assert cur.fetchone()[0] == 9.99
+        # NUMERIC columns come back as Decimal, not float.
+        assert cur.fetchone()[0] == Decimal("9.99")
