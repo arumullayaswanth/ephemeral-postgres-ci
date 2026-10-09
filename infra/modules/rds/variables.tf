@@ -19,9 +19,9 @@ variable "subnet_ids" {
 }
 
 variable "engine_version" {
-  description = "PostgreSQL engine version."
+  description = "PostgreSQL major version (e.g. 16). AWS picks the latest minor."
   type        = string
-  default     = "16.4"
+  default     = "16"
 }
 
 variable "instance_class" {

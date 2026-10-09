@@ -66,9 +66,9 @@ variable "allow_ssh_cidrs" {
 # --- RDS PostgreSQL (created by Terraform) ------------------------------
 
 variable "db_engine_version" {
-  description = "PostgreSQL engine version."
+  description = "PostgreSQL major version. Major-only lets AWS pick the latest minor."
   type        = string
-  default     = "16.4"
+  default     = "16"
 }
 
 variable "db_instance_class" {

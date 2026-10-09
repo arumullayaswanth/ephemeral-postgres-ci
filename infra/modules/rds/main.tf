@@ -60,5 +60,9 @@ resource "aws_db_instance" "this" {
 
   apply_immediately = true
 
+  lifecycle {
+    ignore_changes = [engine_version]
+  }
+
   tags = merge(var.tags, { Name = var.name })
 }
